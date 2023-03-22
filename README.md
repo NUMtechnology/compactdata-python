@@ -1,5 +1,3 @@
-# Example Package
+# CompactData
 
-This is a simple example package. You can use
-[Github-flavored Markdown](https://guides.github.com/features/mastering-markdown/)
-to write your content.
+This is a placeholder package for a CompactData python parser.
