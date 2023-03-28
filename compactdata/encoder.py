@@ -274,7 +274,7 @@ def _make_iterencode(
                 if isinstance(value, (list, tuple)):
                     chunks = _iterencode_list(value, _current_indent_level)
                 elif isinstance(value, dict):
-                    chunks = _iterencode_dict(value, _current_indent_level)
+                    chunks = _iterencode_dict(value, _current_indent_level, can_be_orphan_pair=True)
                 else:
                     chunks = _iterencode(value, _current_indent_level)
                 yield from chunks
@@ -285,7 +285,7 @@ def _make_iterencode(
         if markers is not None:
             del markers[marker_id]
 
-    def _iterencode_dict(dct, _current_indent_level):
+    def _iterencode_dict(dct, _current_indent_level, can_be_orphan_pair=False, top_level=False):
         if not dct:
             yield "()"
             return
@@ -294,7 +294,9 @@ def _make_iterencode(
             if marker_id in markers:
                 raise ValueError("Circular reference detected")
             markers[marker_id] = dct
-        yield "("
+        orphan_pair = can_be_orphan_pair and len(dct) == 1
+        if not orphan_pair and not top_level:
+            yield "("
         if _indent is not None:
             _current_indent_level += 1
             newline_indent = "\n" + _indent * _current_indent_level
@@ -359,7 +361,8 @@ def _make_iterencode(
         if newline_indent is not None:
             _current_indent_level -= 1
             yield "\n" + _indent * _current_indent_level
-        yield ")"
+        if not orphan_pair and not top_level:
+            yield ")"
         if markers is not None:
             del markers[marker_id]
 
@@ -393,7 +396,13 @@ def _make_iterencode(
             if markers is not None:
                 del markers[marker_id]
 
-    return _iterencode
+    def _top_level_iterencode(o, _current_indent_level):
+        if isinstance(o, dict):
+            yield from _iterencode_dict(o, _current_indent_level, top_level=True)
+        else:
+            yield from _iterencode(o, _current_indent_level)
+
+    return _top_level_iterencode
 
 
 class CompactDataEncodeError(Exception):
