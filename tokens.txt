@@ -1,0 +1,10 @@
+LPAREN = "\("
+RPAREN = "\)"
+LBRACKET = "\["
+RBRACKET = "\]"
+EQUALS = "="
+SEMICOLON = ";"
+GRAVE_STRING = "`(?:[\\~][\\~`/bfnrt]|[\\~]u[0-9a-fA-F]{4}|[^\\`~])*`"
+QUOTED_STRING = '"(?:[\\~][\\~"/bfnrt]|[\\~]u[0-9a-fA-F]{4}|[^\\"~])*"'
+UNQUOTED_VALUE(t) = '(?:[\\~][\\~`"/bfnrt\[\]\(\);=]|\\u[0-9a-fA-F]{4}|[^\\`"~\[\]\(\);=])+'
+ignore = " \t\n"

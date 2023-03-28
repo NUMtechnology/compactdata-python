@@ -1,0 +1,27 @@
+Keep in mind that this BNF doesn't include the semantic actions (the code that manipulates the parse tree), but it does capture the syntax of the language being parsed.
+
+compactdata = top-level-map / value
+
+top-level-map = pair-list
+
+pair-list = pair [SEMICOLON pair-list]
+
+pair = key EQUALS value / key map / key array
+
+map = LPAREN [pair-list] RPAREN
+
+array = LBRACKET [value-list] RBRACKET
+
+value-list = array-value [SEMICOLON value-list]
+
+array-value = orphan-pair / value
+
+orphan-pair = pair
+
+value = QUOTED_STRING / GRAVE_STRING / reserved / unquoted-value / map / array
+
+reserved = "NULL" / "TRUE" / "FALSE"
+
+unquoted-value = UNQUOTED_VALUE
+
+key = UNQUOTED_VALUE / QUOTED_STRING / GRAVE_STRING
