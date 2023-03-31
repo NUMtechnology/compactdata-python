@@ -1,3 +1,5 @@
+from compactdata.unescapes import decode_string
+
 def p_compactdata(p):
     """compactdata : top_level_map
     | value"""
@@ -59,10 +61,10 @@ def p_orphan_pair(p):
 
 
 def p_value(p):
-    """value : QUOTED_STRING
-    | GRAVE_STRING
+    """value : quoted_string
+    | grave_string
+    | unquoted_string
     | reserved
-    | unquoted_value
     | map
     | array"""
     p[0] = p[1]
@@ -80,20 +82,23 @@ def p_reserved(p):
         p[0] = False
 
 
-# use type inference for unquoted values
-def p_unquoted_value(p):
-    """unquoted_value : UNQUOTED_VALUE"""
-    try:
-        p[0] = int(p[1])
-    except ValueError:
-        try:
-            p[0] = float(p[1])
-        except ValueError:
-            p[0] = p[1]
+def p_unquoted_string(p):
+    """unquoted_string : UNQUOTED_STRING"""
+    p[0] = decode_string(p[1], quote_char="")
+
+
+def p_quoted_string(p):
+    """quoted_string : QUOTED_STRING"""
+    p[0] = decode_string(p[1], quote_char='"')
+
+
+def p_grave_string(p):
+    """grave_string : GRAVE_STRING"""
+    p[0] = decode_string(p[1], quote_char="`")
 
 
 def p_key(p):
-    """key : UNQUOTED_VALUE
+    """key : UNQUOTED_STRING
     | QUOTED_STRING
     | GRAVE_STRING"""
     p[0] = p[1]

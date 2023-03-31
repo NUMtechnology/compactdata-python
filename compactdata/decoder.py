@@ -1,15 +1,12 @@
 import logging
 
-from compactdata.grammar_rules import *  # noqa
-from compactdata.token_definitions import *  # noqa
 from ply import lex as lex
 from ply import yacc as yacc
 
+from compactdata.grammar_rules import *  # noqa
+from compactdata.token_definitions import *  # noqa
+
 logger = logging.getLogger(__name__)
-
-
-class CompactDataDecodeError(Exception):
-    pass
 
 
 def create_parser(debug: bool = False):

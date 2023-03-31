@@ -8,7 +8,7 @@ reserved = {
 tokens = [
     "QUOTED_STRING",
     "GRAVE_STRING",
-    "UNQUOTED_VALUE",
+    "UNQUOTED_STRING",
     "LPAREN",
     "RPAREN",
     "LBRACKET",
@@ -41,9 +41,9 @@ def t_QUOTED_STRING(t):
     return t
 
 
-def t_UNQUOTED_VALUE(t):
+def t_UNQUOTED_STRING(t):
     r'(?:[\\~][\\~`"/bfnrt\[\]\(\);=]|\\u[0-9a-fA-F]{4}|[^\\`"~\[\]\(\);=])+'
-    t.type = reserved.get(t.value, "UNQUOTED_VALUE")
+    t.type = reserved.get(t.value, "UNQUOTED_STRING")
     return t
 
 

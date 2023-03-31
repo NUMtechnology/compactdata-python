@@ -403,7 +403,3 @@ def _make_iterencode(
             yield from _iterencode(o, _current_indent_level)
 
     return _top_level_iterencode
-
-
-class CompactDataEncodeError(Exception):
-    pass

@@ -1,135 +1,55 @@
-import re
-
-INFINITY = float("inf")
-
-ESCAPE_DCT = {
-    "\\": "\\",  # reverse solidus U+005C
-    '"': '"',  # quotation mark       U+0022
-    "`": "`",  # grave accent         U+0060
-    "\b": "b",  # backspace           U+0008
-    "\f": "f",  # form feed           U+000C
-    "\n": "n",  # line feed           U+000A
-    "\r": "r",  # carriage return     U+000D
-    "\t": "t",  # tab                 U+0009
-    "~": "~",  # tilde                U+007E
-    "(": "(",  # left parenthesis     U+0028
-    ")": ")",  # right parenthesis    U+0029
-    "[": "[",  # left square bracket  U+005B
-    "]": "]",  # right square bracket U+005D
-    ";": ";",  # semicolon            U+003B
-    "=": "=",  # equals sign          U+003D
-}
-for i in range(0x20):
-    ESCAPE_DCT.setdefault(chr(i), "u{0:04x}".format(i))
-
-ESCAPE_REGEX_DICT = {
-    "`": re.compile(
-        r"["
-        r"\x00-\x1f"  # control characters U+0000 to U+001F
-        r"\b"  # backspace           U+0008
-        r"\f"  # form feed           U+000C
-        r"\n"  # line feed           U+000A
-        r"\r"  # carriage return     U+000D
-        r"\t"  # horizontal tab      U+0009
-        r"\\"  # reverse solidus     U+005C
-        r"~"  # tilde                U+007E
-        r"`"  # grave accent         U+0060
-        r"]"
-    ),
-    '"': re.compile(
-        r"["
-        r"\x00-\x1f"  # control characters U+0000 to U+001F
-        r"\b"  # backspace           U+0008
-        r"\f"  # form feed           U+000C
-        r"\n"  # line feed           U+000A
-        r"\r"  # carriage return     U+000D
-        r"\t"  # horizontal tab      U+0009
-        r"\\"  # reverse solidus     U+005C
-        r"~"  # tilde                U+007E
-        r"\""  # quotation mark      U+0022
-        r"]"
-    ),
-    "": re.compile(
-        r"["
-        r"\x00-\x1f"  # control characters U+0000 to U+001F
-        r"\b"  # backspace            U+0008
-        r"\f"  # form feed            U+000C
-        r"\n"  # line feed            U+000A
-        r"\r"  # carriage return      U+000D
-        r"\t"  # horizontal tab       U+0009
-        r"\\"  # reverse solidus      U+005C
-        r"~"  # tilde                 U+007E
-        r"\""  # quotation mark       U+0022
-        r"`"  # grave accent          U+0060
-        r"("  # left parenthesis      U+0028
-        r")"  # right parenthesis     U+0029
-        r"\["  # left square bracket  U+005B
-        r"\]"  # right square bracket U+005D
-        r";"  # semicolon             U+003B
-        r"="  # equals sign           U+003D
-        r"]"
-    ),
-}
-
-ESCAPE_ASCII_REGEX_DICT = {
-    "`": re.compile(
-        r"(["
-        r"\\"  # reverse solidus     U+005C
-        r"~"  # tilde                U+007E
-        r"`"  # grave accent         U+0060
-        r"]|"
-        r"[^ -~]"  # any character that is not between space U+0020 and tilde U+007E
-        r")"
-    ),
-    '"': re.compile(
-        r"(["
-        r"\\"  # reverse solidus     U+005C
-        r"~"  # tilde                U+007E
-        r"\""  # quotation mark      U+0022
-        r"]|"
-        r"[^ -~]"  # any character that is not between space U+0020 and tilde U+007E
-        r")"
-    ),
-    "": re.compile(
-        r"(["
-        r"\\"  # reverse solidus      U+005C
-        r"~"  # tilde                 U+007E
-        r"\""  # quotation mark       U+0022
-        r"`"  # grave accent          U+0060
-        r"("  # left parenthesis      U+0028
-        r")"  # right parenthesis     U+0029
-        r"\["  # left square bracket  U+005B
-        r"\]"  # right square bracket U+005D
-        r";"  # semicolon             U+003B
-        r"="  # equals sign           U+003D
-        r"]|"
-        r"[^ -~]"  # any character that is not between space U+0020 and tilde U+007E
-        r")"
-    ),
-}
+from compactdata.char_constants import (
+    _chars_to_escape,
+    _chars_to_escape_ascii,
+    empty_string,
+    infinity,
+    number_regex,
+    quotation_mark,
+    quote_chars,
+    reverse_solidus,
+    unescaped_to_escaped_map,
+)
+from compactdata.exceptions import CompactDataEncodeError
 
 
-def escape_replacer(quote_char, escape_char, regex_dict):
-    regex = regex_dict[quote_char]
-
+def escape_replacer(escape_char, chars_to_escape):
     def replace(match):
         char = match.group(0)
-        if char in ESCAPE_DCT:
-            return escape_char + ESCAPE_DCT[char]
+        if char in unescaped_to_escaped_map:
+            return escape_char + unescaped_to_escaped_map[char]
         else:
             return f"{escape_char}u{ord(char):04x}"
 
-    return lambda s: regex.sub(replace, s)
+    return lambda s: chars_to_escape.sub(replace, s)
 
 
-def encode_basestring(s, escape_char="\\", quote_char='"', shortest=True, force_ascii=False):
-    regex_dict = ESCAPE_ASCII_REGEX_DICT if force_ascii else ESCAPE_REGEX_DICT
+def encode_basestring(s, escape_char=None, quote_char=None, shortest=None, chars_to_escape=_chars_to_escape):
+    if escape_char is None and quote_char is None and shortest is None:
+        escape_char = reverse_solidus
+        quote_char = quotation_mark
+        shortest = True
+    if escape_char is None:
+        escape_char = reverse_solidus
+    if quote_char is None:
+        quote_char = quotation_mark
+
+    leading_or_trailing_whitespace = s and (s[0] == " " or s[-1] == " ")
+    # only_digits is true if whole string matches the regex number_regex
+    only_digits = s and number_regex.fullmatch(s)
+
+    if leading_or_trailing_whitespace and quote_char == empty_string:
+        raise CompactDataEncodeError("Cannot encode string with leading or trailing whitespace as an unquoted string")
+    if only_digits and quote_char == empty_string:
+        raise CompactDataEncodeError("Cannot encode string with only digits as an unquoted string")
 
     if shortest:
-        best_length = INFINITY
+        best_length = infinity
         best_result = None
-        for quote_char in regex_dict.keys():
-            replacer = escape_replacer(quote_char, escape_char, regex_dict)
+        for quote_char in quote_chars:
+            if quote_char == empty_string and (leading_or_trailing_whitespace or only_digits):
+                continue
+            char_escape_map = chars_to_escape[quote_char]
+            replacer = escape_replacer(escape_char, char_escape_map)
             result = replacer(s)
 
             if quote_char:
@@ -140,7 +60,8 @@ def encode_basestring(s, escape_char="\\", quote_char='"', shortest=True, force_
                 best_result = result
         return best_result
 
-    replacer = escape_replacer(quote_char, escape_char, regex_dict)
+    char_escape_map = chars_to_escape[quote_char]
+    replacer = escape_replacer(escape_char, char_escape_map)
     result = replacer(s)
 
     if quote_char:
@@ -149,5 +70,5 @@ def encode_basestring(s, escape_char="\\", quote_char='"', shortest=True, force_
         return result
 
 
-def encode_basestring_ascii(s, escape_char="\\", quote_char='"', shortest=True):
-    return encode_basestring(s, escape_char, quote_char, shortest, force_ascii=True)
+def encode_basestring_ascii(s, escape_char=reverse_solidus, quote_char=quotation_mark, shortest=True):
+    return encode_basestring(s, escape_char, quote_char, shortest, chars_to_escape=_chars_to_escape_ascii)

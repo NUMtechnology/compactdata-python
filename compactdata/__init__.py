@@ -1,7 +1,8 @@
 import logging
 
-from compactdata.decoder import CompactDataDecodeError, create_parser, get_lexer_and_parser
-from compactdata.encoder import CompactDataEncodeError, CompactDataEncoder
+from compactdata.decoder import create_parser, get_lexer_and_parser
+from compactdata.encoder import CompactDataEncoder
+from compactdata.exceptions import CompactDataDecodeError, CompactDataEncodeError
 
 logger = logging.getLogger(__name__)
 
